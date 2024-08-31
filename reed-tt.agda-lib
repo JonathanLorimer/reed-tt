@@ -1,0 +1,5 @@
+name: reed-tt
+include:
+  src
+depend:
+  standard-library
