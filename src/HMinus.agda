@@ -59,7 +59,7 @@ record ψ : Set where
 
 postulate
   varName : String → TmVar
-  subst : TmVar → BaseTm
-
+   subst : TmVar → BaseTm
+ 
 example : Tm
 example = lam (varName "x") (Tm.basetm (subst (varName "x")))
