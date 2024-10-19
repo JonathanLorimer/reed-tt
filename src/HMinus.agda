@@ -9,7 +9,7 @@ module HMinus
 
 import Data.List.Relation.Unary.All using ([]; _∷_)
 import Data.List
-open Data.List using (List ; _∷_ ; [])
+open Data.List using (List ; _∷_ ; [] ; [_])
 import Data.Maybe
 open Data.Maybe using (Maybe)
 import Data.Product
@@ -62,6 +62,7 @@ record ψ : Set where
 
 postulate
   varName : String → TmVar
+  className : String → Class
  
 example : Tm
 example = lam (varName "x") (tmvar (varName "x")) -- λx.x
@@ -69,18 +70,56 @@ example = lam (varName "x") (tmvar (varName "x")) -- λx.x
 open import Agda.Primitive
 
 data _∈_ {A : Set} : (a : A) → (List A) → Set where
+  bury : {a : A} → {as : List A} → (b : A) → a ∈ as → a ∈ (b ∷ as) 
   insert : (a : A) → (as : List A) → a ∈ (a ∷ as)
 
 liftTy : Type → Scheme
 liftTy ty = SQualified (QBase ty)
 
-data _∣_⊢_∶_ : (p : List Predicate) → (Γ : List (TmVar × Scheme)) → (M : Tm) → (σ : Scheme) → Set where
-  Var : ∀ p Γ → (x : TmVar) → (σ : Scheme) → ( (x , σ) ∈ Γ) → p ∣ Γ ⊢ tmvar x ∶ σ
-  [→I] : ∀ p Γ M → (x : TmVar) → (τ τ′ : Type) 
-       → p ∣ ((x , liftTy τ) ∷ Γ) ⊢ M ∶ liftTy τ′ 
+data _∣_⊢_∶_ : (P : List Predicate) → (Γ : List (TmVar × Scheme)) → (M : Tm) → (σ : Scheme) → Set where
+  Var  : ∀ P Γ → (x : TmVar) → (σ : Scheme) 
+       → ( (x , σ) ∈ Γ) 
        -----------------------------
-       → p ∣ Γ ⊢ (lam x M) ∶ (liftTy (τ ⇒ τ′))
+       → P ∣ Γ ⊢ tmvar x ∶ σ
 
+  [→I] : ∀ P Γ M → (x : TmVar) → (τ τ′ : Type) 
+       → P ∣ ((x , liftTy τ) ∷ Γ) ⊢ M ∶ liftTy τ′ 
+       -----------------------------
+       → P ∣ Γ ⊢ (lam x M) ∶ (liftTy (τ ⇒ τ′))
+
+  [→E] : ∀ P Γ M N → (τ τ′ : Type) 
+       → P ∣ Γ ⊢ M ∶ (liftTy (τ ⇒ τ′))
+       → P ∣ Γ ⊢ N ∶ (liftTy τ)
+       -----------------------------
+       → P ∣ Γ ⊢ app M N ∶ (liftTy τ′)
+
+  μ    : ∀ P Γ M → (τ : Type) → (x : TmVar)
+       → P ∣ ((x , liftTy τ) ∷ Γ) ⊢ M ∶ (liftTy τ)
+       -----------------------------
+       → P ∣ Γ ⊢ fix x M ∶ (liftTy τ) 
+
+  [⇒I] : ∀ P Γ M → (π : Predicate) → (ρ : Qualified)
+       → (π ∷ P) ∣ Γ ⊢ M ∶ SQualified ρ
+       -----------------------------
+       → P ∣ Γ ⊢ M ∶ SQualified (QConstraint π ρ) 
+  
+  [⇒E] : ∀ P Γ M → (π : Predicate) → (ρ : Qualified) 
+       → P ∣ Γ ⊢ M ∶ SQualified (QConstraint π ρ) 
+       → {! π !}
+       -----------------------------
+       → P ∣ Γ ⊢ M ∶ SQualified ρ
+
+  [∀I] : {!   !}
+
+  [∀E] : {!   !}
+
+  Let  : {!   !}
+    
+ 
+open import Data.Nat
+
+example-∈ : 2 ∈ (1 ∷ 2 ∷ [])
+example-∈ = bury 1 (insert 2 [])
 
 exampleTy : (τ : Type) → [] ∣ [] ⊢ (lam (varName "x") (tmvar (varName "x"))) ∶ (liftTy (τ ⇒ τ)) 
 exampleTy τ = [→I] [] [] (tmvar (varName "x")) (varName "x") τ τ 
@@ -88,5 +127,3 @@ exampleTy τ = [→I] [] [] (tmvar (varName "x")) (varName "x") τ τ
 
 -- Write the typing derivation for example
 -- enumerate some more inference rules (App [])
-
--- exampleDeriv : []∣[]⊢_∶_ 
